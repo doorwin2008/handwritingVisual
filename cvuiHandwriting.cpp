@@ -1,3 +1,17 @@
+/*
+* 版权所有 东海仙人岛 2025年3月 
+* B站：https://space.bilibili.com/627167269
+* 功能需求：
+* 手写数组输入功能，可视化展示机器学习神经网络的结果，模拟神经元链接，动态展示识别过程的变化
+* 设计方案：
+* 界面显示，采用cvui; 权重文件的读取，采用opencv 4.10.0
+* 网络结构，输入层 28*28，隐藏层 64 ，输出层 10
+* 激活函数 y=(1. - x) / (1. + x)
+* 使用说明：
+* 权重文件，采用MINST训练的数据集
+*左键书写，右键擦除，esc按键退出.左侧的复选框可以显示或隐藏神经元连线。
+*2025-3-8 更新记录：位于之前用32为float数，导致负无穷小和无穷大的数判断出现问题，修改为64位数参与计算。
+*/
 #include<iostream>
 #include <opencv2/opencv.hpp>
 #include <string>
@@ -37,7 +51,35 @@ int g_gradw = 30;
 int g_gradh = 50;
 cv::Ptr<cv::ml::ANN_MLP> ann;
 uint8_t g_mouseKeyleftRight = 0;
+//定义输出buffer
+cv::AutoBuffer<double> _buf(1568 + 10);
+//结果输出矩阵
+Mat outputs;
 
+// 获取每一层的权重矩阵,读出来是CV_64F
+//Mat weightMat = ann->getWeights(0);
+//***** 第一层权重特殊处理。
+vector<Mat> weights;
+
+cv::Mat sigmoid3(const cv::Mat& input) {
+	cv::Mat output = input.clone();
+	for (int i = 0; i < output.rows; ++i) {
+		for (int j = 0; j < output.cols; ++j) {
+			// 对于 CV_64F 类型数据
+			if (output.type() == CV_64F) {
+				double val = output.at<double>(i, j);
+				output.at<double>(i, j) = (1.0f - val) / (1.0f + val);
+			}
+			// 对于 CV_32F 类型数据
+			else if (output.type() == CV_32F) {
+				float val = output.at<float>(i, j);
+		
+				output.at<float>(i, j) = 1.0-std::exp(-val) / (1.0 + std::exp(  -val));
+			}
+		}
+	}
+	return output;
+}
 cv::Mat sigmoid2(const cv::Mat& input) {
 	cv::Mat output = input.clone();
 	for (int i = 0; i < output.rows; ++i) {
@@ -59,19 +101,34 @@ cv::Mat sigmoid2(const cv::Mat& input) {
 	}
 	return output;
 }
-cv::Mat sigmoid(const cv::Mat& input) {
+cv::Mat activefunction(const cv::Mat& input) {
 	cv::Mat output = input.clone();
 	for (int i = 0; i < output.rows; ++i) {
 		for (int j = 0; j < output.cols; ++j) {
 			// 对于 CV_64F 类型数据
 			if (output.type() == CV_64F) {
 				double val = output.at<double>(i, j);
-				output.at<double>(i, j) = 1.0 / (1.0 + std::exp(-val* 2.6));
+				if (!cvIsInf(val))//如果遇到无穷小，值为 -1
+				{
+					output.at<double>(i, j) = (1. - val) / (1. + val);
+				}
+				else
+				{
+					output.at<double>(i, j) = -1;
+				}
+				
 			}
 			// 对于 CV_32F 类型数据
 			else if (output.type() == CV_32F) {
 				float val = output.at<float>(i, j);
-				output.at<float>(i, j) = 1.0f / (1.0f + std::exp(-val * 2.6));
+				if (!cvIsInf(val))//如果遇到无穷小，值为 -1
+				{
+					output.at<float>(i, j) = (1. - val) / (1. + val);
+				}
+				else
+				{
+					output.at<float>(i, j) = -1;
+				}
 			}
 		}
 	}
@@ -91,7 +148,7 @@ void linkOut2hid(cv::Mat& frame)
 		for (int j = 0; j < sizeof(g_hidLayerDraw) / sizeof(g_hidLayerDraw[0]); j++)
 		{
 			pt2 = cv::Point2i(g_hidLayerDraw[j].x+ 7.0/2, g_hidLayerDraw[j].y); //*64
-			if (g_outputLayerDraw[i].v > 0.5 && g_hidLayerDraw[j].v > 0.7 )
+			if (g_outputLayerDraw[i].v > 0.3 && g_hidLayerDraw[j].v > 0.3 )
 			{
 				cv::line(frame, pt1, pt2, color, 1, 1);
 			}
@@ -125,20 +182,79 @@ void linkInput2Hid(cv::Mat& frame)
 		}	
 	}
 }
+void calc_activ_func(Mat& sums, const Mat& w)
+{
+	const double* bias = w.ptr<double>(w.rows - 1);
+	int i, j, n = sums.rows, cols = sums.cols;
+	double f_param2 = 1.0;
+	double f_param1 = 1.0;
+	double scale = 0, scale2 = f_param2;
+	scale = -f_param1;
+	
+	CV_Assert(sums.isContinuous());
+
+	for (i = 0; i < n; i++)
+	{
+		double* data = sums.ptr<double>(i);
+		for (j = 0; j < cols; j++)
+		{
+			data[j] = (data[j] + bias[j]) * scale;
+		}
+	}
+
+	exp(sums, sums);
+
+	if (sums.isContinuous())
+	{
+		cols *= n;
+		n = 1;
+	}
+
+	for (i = 0; i < n; i++)
+	{
+		double* data = sums.ptr<double>(i);
+		for (j = 0; j < cols; j++)
+		{
+			if (!cvIsInf(data[j]))
+			{
+				double t = scale2 * (1. - data[j]) / (1. + data[j]);
+				data[j] = t;
+			}
+			else
+			{
+				data[j] = -scale2;
+			}
+		}
+	}
+}
+//计算e为底的指数函数
+void myExp(Mat& src, Mat& des)
+{
+	for (int i = 0; i < src.cols; i++)
+	{
+		des.at<double>(0, i) = exp(src.at<double>(0, i));
+	}
+}
+//预测函数
 void PredicationStart(cv::Mat& frame)
 {
+	//给输入
 	float inputArry[28 * 28]; 
 	for (int i = 0; i < 28 * 28; i++)
 	{
 		inputArry[i] = g_inputLayerDraw[i].v;
 	}
-	Mat input = Mat(28, 28, CV_32FC1, inputArry);
-	input.convertTo(input, CV_32F);
-	//imput
-	input = input / 255.0;
-	//(1,784)
-	input = input.reshape(1, 1);
 
+	//格式化输入
+	Mat inputs = Mat(28, 28, CV_32FC1, inputArry);
+	inputs.convertTo(inputs, CV_64F);
+	inputs = inputs / 255.0;
+	//(1,784)
+	inputs = inputs.reshape(1, 1); // 288*288 -> 1*784
+
+	double* buf = _buf.data();
+	
+	//  outputs = outputs.getMat();
 	//读取权重文件，转移到main函数中，因为只需要加载一次
 
 	//float ret = ann->predict(input, pre_out);
@@ -160,99 +276,112 @@ void PredicationStart(cv::Mat& frame)
 	int layerCount = layerSizes.rows;
 
 	// 每一层数据计算结果
-	vector<Mat> layerOutputs;
-	layerOutputs.push_back(input); // 输入层,把识别的图片矩阵导入一个矩阵向量
+	//vector<Mat> layerOutputs;
+	//layerOutputs.push_back(input); // 输入层,把识别的图片矩阵导入一个矩阵向量
 
-	// 获取每一层的权重矩阵
-	vector<Mat> weights;
-	Mat weightMat = ann->getWeights(0);
-	//***** 第一层权重特殊处理。
-	weights.push_back(weightMat);
+	Mat layer_in = inputs.rowRange(0, 1);
+	Mat layer_out(1, layer_in.cols, CV_64F, buf);
 
-	//从第二层开始，分别获取权重 前64和前10
-	for (int i = 1; i < layerCount; ++i) {
-		Mat weightMat = ann->getWeights(i);
-		Mat w = weightMat.colRange(0, layer_sizes[i]);//***** 这里根据权重文件中过去的layer size读取实际的权重大小。
-		weights.push_back(w);
-	}
-
-	//第一层的计算结果 date* w +b
-	for (int jj = 0; jj < layerOutputs[0].cols; jj++) {
-		double tt = layerOutputs[0].at<float>(0, jj);
-		layerOutputs[0].at<float>(0, jj) = weights[0].at<double>(0, (2 * jj + 1)) + tt * weights[0].at<double>(0, (2 * jj));
+	//第一层的计算结果 scale_input date* w +b
+	for (int j = 0; j < inputs.cols; j++) {
+		double tt = inputs.at<double>(0, j);
+		inputs.at<double>(0, j) = weights[0].at<double>(0, (2 * j + 1)) + tt * weights[0].at<double>(0, (2 * j));
 	}
 
 	// 第二层和第三层的计算 date* w +b
 	for (int i = 1; i < layerCount; ++i) {
-		Mat input = layerOutputs.back();//返回容器中最后一个元素
-		//第二层和第三层的权重，包括最后一行的偏置值
-		Mat weight = weights[i];
-		if (weight.type() != CV_32F) {
-			weight.convertTo(weight, CV_32F);
-		}
-		//输出结果
-		Mat output;
+		double* data = buf + ((0 & 1) ? 784 * 1 : 0);
+		int cols = layer_sizes[i];
 
+		layer_out = Mat(1, cols, CV_64F, data);
+		Mat weight = weights[i];
+		if (weight.type() != CV_64F) { 
+			weight.convertTo(weight, CV_64F);
+		}
 		// 第二层和第三层的偏置
 		Mat bias = weight.row(weight.rows - 1);//最后一行作为偏置
-		//std::cout << "base of :" << i << std::endl;
-		//for (int j = 0; j < bias.cols; ++j) {
-			//std::cout << bias.at<float>(0, j) << " ";
-		//}
 
 		// 提取真正的权重，去掉最后一行
-		Mat realWeight = weight.rowRange(0, weight.rows - 1);
-		Mat temp = realWeight;
-		output = input * temp;//+ bias
+		//Mat realWeight = weight.rowRange(0, weight.rows - 1);
+		Mat w = weight.rowRange(0, layer_in.cols);
+		int a = w.type();
+		int b = bias.type();
+		int c = layer_in.type();
+		
+		//手动计算矩阵相乘
+		layer_out = (layer_in * w);
+		//或者使用cv库接口实现矩阵相乘
+		//cv::gemm(layer_in, w, 1, cv::noArray(), 0, layer_out);//cv::gemm()实现矩阵相乘,优化了算法
 
-		layerOutputs.push_back(output);
+		//激活函数	
+		//calc_activ_func(layer_out, weights[i]);
+		//或者使用手搓接口
+		layer_out =(layer_out + bias)*(-1); 
+		myExp(layer_out, layer_out);//归一化，全部转为正数， 自然常数e为底的指数函数
+		//或者调用opencv的库，直接计算两个矩阵元素的e为底的指数
+		//cv::exp(layer_out, layer_out);//自然常数e为底的指数函数
+		layer_out = activefunction(layer_out);
+
+		layer_in = layer_out;
 
 		//临时调用激活函数，用来显示输出、
-		Mat tempo = output.clone();
-		tempo = sigmoid(tempo);
-		// 打印当前层的权重和显示
-		//std::cout << "weight of " << i << std::endl;
+		Mat tempo = layer_out;
+
+
 		for (int ii = 0; ii < tempo.rows; ++ii) {
 			for (int jj = 0; jj < tempo.cols; ++jj) {
-				//std::cout << tempo.at<float>(ii, jj) << " ";
 				if (i == 1)
 				{
 					//std::cout << tempo.at<float>(ii, jj) << " ";
-					g_hidLayerDraw[jj].v = tempo.at<float>(ii, jj);
+					g_hidLayerDraw[jj].v = (float)(tempo.at<double>(ii, jj));
 				}
-				
 			}
 		}
+		layer_in = layer_out;
 	}
-
+	//scale_output
+	layer_out = outputs.rowRange(0, 1);
+	int cols = layer_out.cols;
+	const double* w = weights[layerCount].ptr<double>();
+	
+	if (layer_out.type() == CV_64F)
+	{
+		for (int i = 0; i < layer_in.rows; i++)
+		{
+			const double* src = layer_in.ptr<double>(i);
+			double* dst = layer_out.ptr<double>(i);
+			for (int j = 0; j < 10; j++)
+				dst[j] = (src[j] * w[j * 2] + w[j * 2 + 1]);
+		}
+	}
 	// 最后一层的输出即为预测结果
-	Mat pre_out = layerOutputs.back();
+	Mat pre_out = layer_out;
 
 	//Mat t = pre_out.t();
 	//Mat output_one_row = t.reshape(1, 1);
 	//激活函数，包括负值处理
-	cv::Mat normalized_data = sigmoid2(pre_out);
-
+	
 	double maxVal = 0;
 	double minVal = 0;
 	cv::Point maxPoint;
 	cv::Point minPoint;
-	cv::minMaxLoc(normalized_data, &minVal, &maxVal, &minPoint, &maxPoint);
+	cv::minMaxLoc(outputs, &minVal, &maxVal, &minPoint, &maxPoint);
 	int max_index = maxPoint.x;
-	//cvui::printf(frame, 877, 97, "(Result: %d, Confidence: %d)", max_index, maxVal);
-	//cout << "maxVal: "<<maxVal << endl;
 
 	g_ResultString = "Result:" + to_string(max_index) + " Confidence:" + to_string(maxVal);
-
-	if (pre_out.type() != CV_64F && pre_out.type() != CV_32F) {
-		pre_out.convertTo(pre_out, CV_32F);
+	//cout << g_ResultString << endl;
+	if (pre_out.type() != CV_64F) {
+		pre_out.convertTo(pre_out, CV_64F);
 	}
 
-	for (int i = 0; i < normalized_data.cols; i++)
+	for (int i = 0; i < pre_out.cols; i++)
 	{
-		g_outputLayerDraw[i].v  = normalized_data.at<float>(0, i);
+		g_outputLayerDraw[i].v  = (float)(pre_out.at<double>(0, i));
+		if (g_outputLayerDraw[i].v < 0)g_outputLayerDraw[i].v = 0;
+		//cout << "g_outputLayerDraw" << g_outputLayerDraw[i].v << endl;
 	}
 }
+//鼠标按键移动处理函数
 void mouseAction(cv::Mat &frame)
 {
 	cv::Rect rectangleL(130, 10, 20, 20);
@@ -283,7 +412,7 @@ void mouseAction(cv::Mat &frame)
 			g_inputLayerDraw[gy * 28 + gx].x = g_mouse_x;//绝对坐标用来画连接线
 			g_inputLayerDraw[gy * 28 + gx].y = g_mouse_y;
 			g_inputLayerDraw[gy * 28 + gx].v = g_mouseKeyleftRight; //左键书写，右键擦除
-			if (gx > 1 && gx < 26 && gy >1 && gy < 26)
+			if (gx > 1 && gx < 26 && gy >1 && gy < 26 && true) //如果需要加粗笔迹，置为true
 			{
 				int gxE = gx + 1;
 				int gyE = gy + 1;
@@ -387,6 +516,7 @@ void hidLayerDraw(cv::Mat& frame) //g_hidLayerDraw
 		g_hidLayerDraw[i].y = 270;
 	}
 }
+//输出层
 void outputLayerDraw(cv::Mat& frame)
 {
 	//int gradwh = 30;
@@ -401,10 +531,12 @@ void outputLayerDraw(cv::Mat& frame)
 }
 int main(int argc, const char* argv[])
 {
-	cout << "控制台，运行时请勿关闭" << endl;
+	cout << "@ 2025 DongHai XianRen\n控制台，运行时请勿关闭" << endl;
 	bool Display_output_link = true;
 	bool Display_input_link = false;
 	bool windowsShow = true;
+	//outputs = Mat(1, 10, CV_32F, buf + 1568);
+	outputs.create(1, 10, CV_64F);
 
 	utils::logging::setLogLevel(utils::logging::LOG_LEVEL_ERROR); //只打印错误信息
 	// Create a frame where components will be rendered to.
@@ -413,8 +545,16 @@ int main(int argc, const char* argv[])
 
 	// Init cvui and tell it to create a OpenCV window, i.e. cv::namedWindow(WINDOW_NAME).
 	cvui::init(WINDOW_NAME);
+
 	//加载ann模型
 	 ann = cv::ml::StatModel::load<cv::ml::ANN_MLP>("mnist_ann50.xml");
+	 
+	 //从第二层开始，分别获取权重 前64和前10
+	 for (int i = 0; i < 3 + 2; ++i) {
+		 Mat weightMat = ann->getWeights(i);
+		 //Mat w = weightMat.colRange(0, layer_sizes[i]);//***** 这里根据权重文件中过去的layer size读取实际的权重大小。
+		 weights.push_back(weightMat);
+	 }
 
 	while (windowsShow) {
 		// Fill the frame with a nice color
@@ -438,6 +578,7 @@ int main(int argc, const char* argv[])
 		for (int i = 0; i < 10; i++)
 		{
 			//cout << i << "= " << g_outputLayerDraw[i].v << endl;
+			//cout << g_outputLayerDraw[i].x << " " << g_outputLayerDraw[i].y << " " << g_gradh * g_outputLayerDraw[i].v + 1 << endl;
 			cvui::rect(frame, g_outputLayerDraw[i].x, g_outputLayerDraw[i].y, g_gradw, g_gradh * g_outputLayerDraw[i].v + 1, 0xaa0000, 0x0aa00000); //手写
 		}
 
