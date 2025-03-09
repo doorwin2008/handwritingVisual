@@ -23,7 +23,7 @@ void displayImg()
     image = image.reshape(1, 1);
      
     //加载ann模型
-    cv::Ptr<cv::ml::ANN_MLP> ann = cv::ml::StatModel::load<cv::ml::ANN_MLP>("mnist_ann.xml");
+    cv::Ptr<cv::ml::ANN_MLP> ann = cv::ml::StatModel::load<cv::ml::ANN_MLP>("mnist_ann50.xml");
     //预测图片
     Mat pre_out;
     float ret = ann->predict(image, pre_out);

@@ -34,7 +34,7 @@ cv::Mat sigmoid(const cv::Mat& input) {
 void displayImg()
 {
     //读取一张手写数字图片(28,28)
-    Mat image = cv::imread("5.jpg", 0);
+    Mat image = cv::imread("1.jpg", 0);
     Mat img_show = image.clone();
     //更换数据类型有uchar->float32
     image.convertTo(image, CV_32F);
@@ -85,7 +85,8 @@ void displayImg()
     //std::cout << "matrix_2x784 " << std::endl;
     for (int jj = 0; jj < layerOutputs[0].cols; jj++) {
         double tt = layerOutputs[0].at<float>(0, jj);
-        layerOutputs[0].at<float>(0, jj) = weights[0].at<double>(0, (2 * jj + 1)) + tt* weights[0].at<double>(0, (2 * jj));
+        layerOutputs[0].at<float>(0, jj) = weights[0].at<double>(0, (2 * jj + 1)) + tt * weights[0].at<double>(0, (2 * jj));
+      
     }
 
     // 手动计算每一层的输出
@@ -108,7 +109,7 @@ void displayImg()
        // 提取真正的权重
        Mat realWeight = weight.rowRange(0, weight.rows-1);
        Mat temp = realWeight;
-       output = input * temp ;//+ bias
+       output = input * temp + bias;//
 
         // 应用激活函数（这里假设使用ReLU）
         //cv::threshold(output, output, 0, 0, cv::THRESH_TOZERO);

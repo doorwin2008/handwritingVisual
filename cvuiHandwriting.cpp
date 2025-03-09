@@ -35,6 +35,13 @@ struct draw_s {
 	int y;
 	float v;
 };
+//调色板
+uchar doubleColorValue_R = 31;
+uchar doubleColorValue_G = 131;
+uchar doubleColorValue_B = 231;
+uchar doubleColorValue_A = 128;
+unsigned int  bdColor;
+unsigned int  filColor;
 //书写方格子
 draw_s g_inputLayerDraw[28*28];
 cv::Rect g_inRect = { 400,480,7,7 };
@@ -140,7 +147,10 @@ cv::Mat activefunction(const cv::Mat& input) {
 void linkOut2hid(cv::Mat& frame)
 {
 	cv::Point2i pt2;
-	cv::Scalar color(200, 200, 200);
+	cv::Scalar color1(200, 200, 200);
+	cv::Scalar color2(150, 150, 150);
+	cv::Scalar color3(100, 100, 100);
+	cv::Scalar color4(50, 50, 50);
 	for (int i = 0; i < sizeof(g_outputLayerDraw) /sizeof(g_outputLayerDraw[0]); i++)
 	{
 		cv::Point2i pt1 = cv::Point2i(g_outputLayerDraw[i].x + g_gradw/2, g_outputLayerDraw[i].y+ g_gradh);//*10
@@ -148,10 +158,27 @@ void linkOut2hid(cv::Mat& frame)
 		for (int j = 0; j < sizeof(g_hidLayerDraw) / sizeof(g_hidLayerDraw[0]); j++)
 		{
 			pt2 = cv::Point2i(g_hidLayerDraw[j].x+ 7.0/2, g_hidLayerDraw[j].y); //*64
-			if (g_outputLayerDraw[i].v > 0.3 && g_hidLayerDraw[j].v > 0.3 )
+			if (g_outputLayerDraw[i].v > 0.1 && g_hidLayerDraw[j].v > 0.3 )
 			{
-				cv::line(frame, pt1, pt2, color, 1, 1);
+				cv::line(frame, pt1, pt2, color1, 1, 1);
+				/*if (g_outputLayerDraw[i].v > 0.9 && g_hidLayerDraw[j].v > 0.5)
+				{
+					cv::line(frame, pt1, pt2, color4, 1, 1);
+				}
+				else if (g_outputLayerDraw[i].v > 0.6 && g_hidLayerDraw[j].v > 0.5)
+				{
+					cv::line(frame, pt1, pt2, color2, 1, 1);
+				}
+				else if (g_outputLayerDraw[i].v > 0.4 && g_hidLayerDraw[j].v > 0.3)
+				{
+					cv::line(frame, pt1, pt2, color3, 1, 1);
+				}
+				else if (g_outputLayerDraw[i].v > 0.1 && g_hidLayerDraw[j].v > 0.1)
+				{
+					cv::line(frame, pt1, pt2, color4, 1, 1);
+				}*/
 			}
+			
 		}	
 	}
 }
@@ -168,7 +195,7 @@ void linkInput2Hid(cv::Mat& frame)
 		for (int j = 0; j < sizeof(g_hidLayerDraw) / sizeof(g_hidLayerDraw[0]); j++)
 		{
 			pt2 = cv::Point2i(g_hidLayerDraw[j].x+ 7.0/2, g_hidLayerDraw[j].y +26); //*64
-			if (g_inputLayerDraw784[i].v ==255 && g_hidLayerDraw[j].v > 0.7 )
+			if (g_inputLayerDraw784[i].v > 1 && g_hidLayerDraw[j].v > 0.7 )
 			{
 				
 			/*	if(g_hidLayerDraw[j].v >0.7 && g_hidLayerDraw[j].v <= 0.8 )cr = 50;
@@ -177,7 +204,9 @@ void linkInput2Hid(cv::Mat& frame)
 				else if (g_hidLayerDraw[j].v >  1.0)cr = 200;
 				else cr = 0;
 				cout << "color = " << cr << " ";*/
-				cv::line(frame, pt1, pt2, cv::Scalar(173, 190, 241), 1, 1);
+				//cv::line(frame, pt1, pt2, cv::Scalar(173, 190, 241), 1, 1);
+				cvui:line(frame, pt1, pt2, cv::Scalar(173, 190, 241),4,8,0);
+				//cvui::rect(frame, pt1.x, pt1.y, rectangleR.width, rectangleR.height, 0xaaaaaa, 0xdaaaa0000);
 			}
 		}	
 	}
@@ -283,9 +312,13 @@ void PredicationStart(cv::Mat& frame)
 	Mat layer_out(1, layer_in.cols, CV_64F, buf);
 
 	//第一层的计算结果 scale_input date* w +b
+	//std::cout << endl << "inputs " << endl;
 	for (int j = 0; j < inputs.cols; j++) {
-		double tt = inputs.at<double>(0, j);
-		inputs.at<double>(0, j) = weights[0].at<double>(0, (2 * j + 1)) + tt * weights[0].at<double>(0, (2 * j));
+		double _input = inputs.at<double>(0, j);
+		inputs.at<double>(0, j) = weights[0].at<double>(0, (2 * j + 1)) + _input * weights[0].at<double>(0, (2 * j));
+		//if ((float)(inputs.at<double>(0, j)) > 0)
+		//	std::cout << (float)(inputs.at<double>(0, j)) << " ";
+		g_inputLayerDraw784[j].v = (float)(inputs.at<double>(0, j));
 	}
 
 	// 第二层和第三层的计算 date* w +b
@@ -317,9 +350,9 @@ void PredicationStart(cv::Mat& frame)
 		//calc_activ_func(layer_out, weights[i]);
 		//或者使用手搓接口
 		layer_out =(layer_out + bias)*(-1); 
-		myExp(layer_out, layer_out);//归一化，全部转为正数， 自然常数e为底的指数函数
+		//myExp(layer_out, layer_out);//归一化，全部转为正数， 自然常数e为底的指数函数
 		//或者调用opencv的库，直接计算两个矩阵元素的e为底的指数
-		//cv::exp(layer_out, layer_out);//自然常数e为底的指数函数
+		cv::exp(layer_out, layer_out);//自然常数e为底的指数函数
 		layer_out = activefunction(layer_out);
 
 		layer_in = layer_out;
@@ -327,13 +360,18 @@ void PredicationStart(cv::Mat& frame)
 		//临时调用激活函数，用来显示输出、
 		Mat tempo = layer_out;
 
-
+		//std::cout << "g_hidLayerDraw " << endl;
 		for (int ii = 0; ii < tempo.rows; ++ii) {
 			for (int jj = 0; jj < tempo.cols; ++jj) {
 				if (i == 1)
 				{
-					//std::cout << tempo.at<float>(ii, jj) << " ";
+					//std::cout << (float)(tempo.at<double>(ii, jj)) << " ";
 					g_hidLayerDraw[jj].v = (float)(tempo.at<double>(ii, jj));
+				}
+				else if (i == 2)//g_inputLayerDraw784
+				{
+					//std::cout << (float)(tempo.at<double>(ii, jj)) << " ";
+					//g_hidLayerDraw[jj].v = (float)(tempo.at<double>(ii, jj));
 				}
 			}
 		}
@@ -449,7 +487,7 @@ void mouseAction(cv::Mat &frame)
 	{
 		//cvui::text(frame, 10, 70, "<-");
 		g_mouseKeyleftRight = 255;
-		cvui::rect(frame, rectangleL.x, rectangleL.y, rectangleL.width, rectangleL.height, 0xaaaaaa, 0xaaf00aa00);
+		cvui::rect(frame, rectangleL.x, rectangleL.y, rectangleL.width, rectangleL.height, bdColor, filColor);
 	}
 	if (cvui::mouse(WINDOW_NAME, cvui::RIGHT_BUTTON, cvui::IS_DOWN))
 	{
@@ -467,7 +505,7 @@ void inputLayerDraw(cv::Mat& frame)
 		for (int i = 0; i < 28; i++)
 		{
 			if (g_inputLayerDraw[j * 28 + i].v == 255) {
-				cvui::rect(frame, g_inRect.x + i * g_inRect.width, g_inRect.y + g_inRect.height * j, g_inRect.width, g_inRect.height, 0xaa0000, 0x0aa00000); //手写
+				cvui::rect(frame, g_inRect.x + i * g_inRect.width, g_inRect.y + g_inRect.height * j, g_inRect.width, g_inRect.height, bdColor, filColor); //手写
 			}
 			else {
 				cvui::rect(frame, g_inRect.x + i * g_inRect.width, g_inRect.y + g_inRect.height * j, g_inRect.width, g_inRect.height, 0xaaaaaa, 0xffa0a0a0);//画背景
@@ -485,14 +523,16 @@ void inputExpansionLayerDraw(cv::Mat& frame) //
 		{
 			//cvui::rect(frame, 80 + i * (gradwh+2),  360 + (gradwh+2) * j, gradwh, gradwh, 0xaaaaaa, 0xffa0a0a0);
 			if (g_inputLayerDraw[count].v == 255) {
-				cvui::rect(frame, 80 + i * (gradwh + 2), 394 + (gradwh + 4) * j , gradwh, gradwh, 0xaa0000, 0x0aa00000); //手写
+				
+				//0xaa0000  0x00880000手写笔记颜色，数越小，颜色越深 //acolor
+				cvui::rect(frame, 80 + i * (gradwh + 2), 394 + (gradwh + 4) * j , gradwh, gradwh, bdColor, filColor);
 			}
 			else {
 				cvui::rect(frame, 80 + i * (gradwh + 2), 394 + (gradwh + 4) * j, gradwh, gradwh, 0xaaaaaa, 0xffa0a0a0);//画背景
 			}
 			g_inputLayerDraw784[count].x = 80 + i * (gradwh + 2);
 			g_inputLayerDraw784[count].y = 394 + (gradwh + 4) * j;
-			g_inputLayerDraw784[count].v = g_inputLayerDraw[count].v;
+			//g_inputLayerDraw784[count].v = g_inputLayerDraw[count].v;
 			if (count >= 784 -1)break;
 		}
 }
@@ -507,7 +547,7 @@ void hidLayerDraw(cv::Mat& frame) //g_hidLayerDraw
 			int aa = g_hidLayerDraw[i].v * (gradwh + 8);
 			aa = (aa == 0) ? 1 : aa;
 			//cout << "aa= " << aa << endl;
-			cvui::rect(frame, 120 + i * (gradwh + 2), 270, gradwh - 4, aa, 0xaa0000, 0x0aa00000); //手写
+			cvui::rect(frame, 120 + i * (gradwh + 2), 270, gradwh - 4, aa, bdColor, filColor); //手写
 		}
 		else {
 			cvui::rect(frame, 120 + i * (gradwh + 2), 270, gradwh - 4, gradwh+8, 0xaaaaaa, 0xffa0a0a0);//画背景
@@ -555,14 +595,34 @@ int main(int argc, const char* argv[])
 		 //Mat w = weightMat.colRange(0, layer_sizes[i]);//***** 这里根据权重文件中过去的layer size读取实际的权重大小。
 		 weights.push_back(weightMat);
 	 }
-
+	 
 	while (windowsShow) {
+		//global color 
+		unsigned int r, g, b,a;// = (unsigned int)g_inputLayerDraw784[count].v;
+		r = doubleColorValue_B;
+		g = doubleColorValue_G << 8;
+		b = doubleColorValue_R << 16;
+		a = doubleColorValue_A << 24;
+		bdColor = r | g | b | a;
+		filColor = bdColor;
+		//filColor |= 0xff00000000;
+
 		// Fill the frame with a nice color
 		frame = cv::Scalar(255, 255, 255);
 
 		// Render UI components to the frame
 		cvui::text(frame, 226, 13, "ANN Handwriting Visualization",1,1);
 		//cvui::text(frame, 110, 120, "cvui is awesome!",1,1);
+		//int x = ;
+		
+		cvui::text(frame, 890, 500, "A", 0.6, 1);
+		cvui::trackbar(frame, 895, 485, 150, &doubleColorValue_A, (uchar)0, (uchar)255, 0, "%.0Lf");
+		cvui::text(frame, 890, 540, "R", 0.6, 1);
+		cvui::trackbar(frame, 895, 525, 150, &doubleColorValue_R, (uchar)0, (uchar)255, 0, "%.0Lf");
+		cvui::text(frame, 890, 580, "G", 0.6, 1);
+		cvui::trackbar(frame, 895, 565, 150, &doubleColorValue_G, (uchar)0, (uchar)255, 0, "%.0Lf");
+		cvui::text(frame, 890, 620, "B", 0.6, 1);
+		cvui::trackbar(frame, 895, 605, 150, &doubleColorValue_B, (uchar)0, (uchar)255, 0, "%.0Lf");
 
 		//鼠标的处理
 		mouseAction(frame);
@@ -579,7 +639,7 @@ int main(int argc, const char* argv[])
 		{
 			//cout << i << "= " << g_outputLayerDraw[i].v << endl;
 			//cout << g_outputLayerDraw[i].x << " " << g_outputLayerDraw[i].y << " " << g_gradh * g_outputLayerDraw[i].v + 1 << endl;
-			cvui::rect(frame, g_outputLayerDraw[i].x, g_outputLayerDraw[i].y, g_gradw, g_gradh * g_outputLayerDraw[i].v + 1, 0xaa0000, 0x0aa00000); //手写
+			cvui::rect(frame, g_outputLayerDraw[i].x, g_outputLayerDraw[i].y, g_gradw, g_gradh * g_outputLayerDraw[i].v + 1, bdColor, filColor); //手写
 		}
 
 		//button处理
@@ -608,11 +668,12 @@ int main(int argc, const char* argv[])
 		cvui::text(frame, 41, 494, "Input layer 28*28", 0.5, 1);
 		cvui::text(frame, 41, 304, "Hid layer 64", 0.5, 1);
 		cvui::text(frame, 132, 105, "outpt layer 10", 0.5, 1);
-		cvui::imshow(WINDOW_NAME, frame);
+		
 
 		// This function must be called *AFTER* all UI components. It does
 		// all the behind the scenes magic to handle mouse clicks, etc.
 		cvui::update();
+		cvui::imshow(WINDOW_NAME, frame);
 		if (cv::waitKey(20) == 27) {
 			break;
 		}
