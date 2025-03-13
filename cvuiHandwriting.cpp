@@ -147,7 +147,7 @@ cv::Mat activefunction(const cv::Mat& input) {
 void linkOut2hid(cv::Mat& frame)
 {
 	cv::Point2i pt2;
-	cv::Scalar color1(200, 200, 200);
+	cv::Scalar color1(231, 148, 31);
 	cv::Scalar color2(150, 150, 150);
 	cv::Scalar color3(100, 100, 100);
 	cv::Scalar color4(50, 50, 50);
@@ -205,7 +205,7 @@ void linkInput2Hid(cv::Mat& frame)
 				else cr = 0;
 				cout << "color = " << cr << " ";*/
 				//cv::line(frame, pt1, pt2, cv::Scalar(173, 190, 241), 1, 1);
-				cvui:line(frame, pt1, pt2, cv::Scalar(173, 190, 241),4,8,0);
+				cvui:line(frame, pt1, pt2, cv::Scalar(231, 148, 31),1,8,0);
 				//cvui::rect(frame, pt1.x, pt1.y, rectangleR.width, rectangleR.height, 0xaaaaaa, 0xdaaaa0000);
 			}
 		}	
@@ -315,7 +315,7 @@ void PredicationStart(cv::Mat& frame)
 	//std::cout << endl << "inputs " << endl;
 	for (int j = 0; j < inputs.cols; j++) {
 		double _input = inputs.at<double>(0, j);
-		inputs.at<double>(0, j) = weights[0].at<double>(0, (2 * j + 1)) + _input * weights[0].at<double>(0, (2 * j));
+		inputs.at<double>(0, j) =_input * weights[0].at<double>(0, (2 * j))+  weights[0].at<double>(0, (2 * j + 1)) ;
 		//if ((float)(inputs.at<double>(0, j)) > 0)
 		//	std::cout << (float)(inputs.at<double>(0, j)) << " ";
 		g_inputLayerDraw784[j].v = (float)(inputs.at<double>(0, j));
@@ -337,9 +337,9 @@ void PredicationStart(cv::Mat& frame)
 		// 提取真正的权重，去掉最后一行
 		//Mat realWeight = weight.rowRange(0, weight.rows - 1);
 		Mat w = weight.rowRange(0, layer_in.cols);
-		int a = w.type();
-		int b = bias.type();
-		int c = layer_in.type();
+		//int a = w.type();
+		//int b = bias.type();
+		//int c = layer_in.type();
 		
 		//手动计算矩阵相乘
 		layer_out = (layer_in * w);
@@ -347,7 +347,7 @@ void PredicationStart(cv::Mat& frame)
 		//cv::gemm(layer_in, w, 1, cv::noArray(), 0, layer_out);//cv::gemm()实现矩阵相乘,优化了算法
 
 		//激活函数	
-		//calc_activ_func(layer_out, weights[i]);
+		//calc_activ_func(layer_out, weights[i]); //包含归一化和e指数计算
 		//或者使用手搓接口
 		layer_out =(layer_out + bias)*(-1); 
 		//myExp(layer_out, layer_out);//归一化，全部转为正数， 自然常数e为底的指数函数
@@ -643,7 +643,7 @@ int main(int argc, const char* argv[])
 		}
 
 		//button处理
-		if (cvui::button(frame, 666, 638, "&Clear")) {
+		if (cvui::button(frame, 666, 638, "Clear")) {
 
 			memset(g_inputLayerDraw, 0, sizeof(g_inputLayerDraw));
 			memset(g_outputLayerDraw, 0, sizeof(g_outputLayerDraw));
@@ -667,15 +667,24 @@ int main(int argc, const char* argv[])
 		cvui::text(frame, 1004, 677, "@ 2025 DongHai XianRen", 0.4, 1);
 		cvui::text(frame, 41, 494, "Input layer 28*28", 0.5, 1);
 		cvui::text(frame, 41, 304, "Hid layer 64", 0.5, 1);
-		cvui::text(frame, 132, 105, "outpt layer 10", 0.5, 1);
+		cvui::text(frame, 132, 105, "output layer 10", 0.5, 1);
 		
 
 		// This function must be called *AFTER* all UI components. It does
 		// all the behind the scenes magic to handle mouse clicks, etc.
 		cvui::update();
 		cvui::imshow(WINDOW_NAME, frame);
-		if (cv::waitKey(20) == 27) {
+
+		int keyvalue = cv::waitKey(20);
+		if (keyvalue == 27 || keyvalue == 81) { //ESC Q 按键退出
 			break;
+		} 
+		if (keyvalue == 67) { //C 清除
+			memset(g_inputLayerDraw, 0, sizeof(g_inputLayerDraw));
+			memset(g_outputLayerDraw, 0, sizeof(g_outputLayerDraw));
+			memset(g_hidLayerDraw, 0, sizeof(g_hidLayerDraw));
+			memset(g_inputLayerDraw784, 0, sizeof(g_inputLayerDraw784));
+			g_ResultString = "";
 		}
 		if (getWindowProperty(WINDOW_NAME, WND_PROP_AUTOSIZE) != 1)
 		{

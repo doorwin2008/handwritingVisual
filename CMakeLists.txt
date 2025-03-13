@@ -4,6 +4,9 @@ project(opencvDNN LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
+include_directories(${CMAKE_CURRENT_SOURCE_DIR})
+	
 find_package(OpenCV 4 REQUIRED )
 include_directories(
     ${OpenCV_INCLUDE_DIRS}/include
@@ -45,6 +48,9 @@ add_executable(handwritingPen
 add_executable(ANNHandwritingPredictManual 
     ANNHandwritingPredictManual.cpp
 )
+add_executable(cvuiHandwritingTrain 
+    cvuiHandwritingTrain.cpp
+)
 target_link_libraries(ANNHandwriting PRIVATE  ${OpenCV_LIBS} )
 target_link_libraries(ANNHandwritingPredict PRIVATE  ${OpenCV_LIBS} )
 target_link_libraries(ANN_MLP PRIVATE  ${OpenCV_LIBS} )
@@ -54,3 +60,4 @@ target_link_libraries(Convolution PRIVATE  ${OpenCV_LIBS} )
 target_link_libraries(cvImgturnaround PRIVATE  ${OpenCV_LIBS} )
 target_link_libraries(handwritingPen PRIVATE  ${OpenCV_LIBS} )
 target_link_libraries(ANNHandwritingPredictManual PRIVATE  ${OpenCV_LIBS} )
+target_link_libraries(cvuiHandwritingTrain PRIVATE  ${OpenCV_LIBS} )
