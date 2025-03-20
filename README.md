@@ -15,3 +15,4 @@
 
 * 
 ![本地路径](handwriting.png)
+![本地路径](train.png)
