@@ -8,12 +8,20 @@
 ## 功能需求：
 * 手写数组输入功能，可视化展示机器学习神经网络的结果，模拟神经元链接，动态展示识别过程的变化
 ## 设计方案：
+<<<<<<< HEAD
 * 界面显示，采用cvui(只需要opencv支持，基于cvui.h);
+=======
+* 界面显示，采用cvui;
+>>>>>>> db01dcb7047d94401494746e16245adb1c05ca91
 * 神经网络构建、权重文件的读取，采用opencv ML ANN
 * 本程序只依赖Opencv的库 版本  4.10.0
 * 网络结构，输入层 28*28，隐藏层 64 ，输出层 10
 * * ![本地路径](net_architecture.png)
+<<<<<<< HEAD
 * 激活函数 y=(1. -e^ x) / (1. +e^ x)
+=======
+* 激活函数 y=(1. - x) / (1. + x)
+>>>>>>> db01dcb7047d94401494746e16245adb1c05ca91
 * ![本地路径](activate.png)
 ## 使用说明：
 * 权重文件，采用MNIST的数据集训练的权重 mnist_ann.xml
@@ -24,6 +32,7 @@
 ![本地路径](handwriting.png)
 * 训练过程，展现数据集导入数据，正向传播，反向传播，参数不断修改的过程
 ![本地路径](train.png)
+<<<<<<< HEAD
 
 # 环境配置
 1 安装opencv 4.10.0
@@ -32,3 +41,5 @@
 OpenCV_INCLUDE_DIRS =  D:\opencv-4.10.0\build\install\include
 3. 进入代码build 目录，执行 cmake .. （CMAKE版本3.24.3）
 4. 用visual studio打开创建的工程 
+=======
+>>>>>>> db01dcb7047d94401494746e16245adb1c05ca91
