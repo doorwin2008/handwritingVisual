@@ -1,14 +1,14 @@
 #ifndef CTHREAD_H_
 #include <windows.h>
-// ·â×°µÄÏß³ÌÀà
+// å°è£…çš„çº¿ç¨‹ç±»
 //function CreateThread(
-//    lpThreadAttributes: Pointer; {°²È«ÉèÖÃ}
-//dwStackSize: DWORD; {¶ÑÕ»´óĞ¡}
-//lpStartAddress: TFNThreadStartRoutine; {Èë¿Úº¯Êı}
-//lpParameter: Pointer; {º¯Êı²ÎÊı}
-//dwCreationFlags: DWORD; {Æô¶¯Ñ¡Ïî}
-//var lpThreadId : DWORD{ Êä³öÏß³Ì ID }
-//) : THandle; stdcall; {·µ»ØÏß³Ì¾ä±ú}
+//    lpThreadAttributes: Pointer; {å®‰å…¨è®¾ç½®}
+//dwStackSize: DWORD; {å †æ ˆå¤§å°}
+//lpStartAddress: TFNThreadStartRoutine; {å…¥å£å‡½æ•°}
+//lpParameter: Pointer; {å‡½æ•°å‚æ•°}
+//dwCreationFlags: DWORD; {å¯åŠ¨é€‰é¡¹}
+//var lpThreadId : DWORD{ è¾“å‡ºçº¿ç¨‹ ID }
+//) : THandle; stdcall; {è¿”å›çº¿ç¨‹å¥æŸ„}
 class CThread
 {
 public:
@@ -26,17 +26,17 @@ public:
     }
 
 protected:
-    // Ö´ĞĞº¯Êı£¬×ÓÀàÓ¦¸ÃÊµÏÖÕâ¸ö·½·¨£¬·ñÔòÏß³ÌÊ²Ã´Ò²²»×ö
+    // æ‰§è¡Œå‡½æ•°ï¼Œå­ç±»åº”è¯¥å®ç°è¿™ä¸ªæ–¹æ³•ï¼Œå¦åˆ™çº¿ç¨‹ä»€ä¹ˆä¹Ÿä¸åš
     virtual void Run()
     {
     }
 public:
-    // ¿ªÊ¼Ö´ĞĞÏß³Ì
+    // å¼€å§‹æ‰§è¡Œçº¿ç¨‹
     virtual void Start()
     {
         ResumeThread(m_hThread);
     }
-    // Ïß³ÌÊÇ·ñÍ£Ö¹
+    // çº¿ç¨‹æ˜¯å¦åœæ­¢
     bool Stopped()
     {
         return m_bStopped;
@@ -50,7 +50,7 @@ public:
     }
 
 private:
-    // Ïß³ÌÖ´ĞĞµÄÆğÊ¼µØÖ·£¬Ò²½ĞÏß³Ìº¯Êı
+    // çº¿ç¨‹æ‰§è¡Œçš„èµ·å§‹åœ°å€ï¼Œä¹Ÿå«çº¿ç¨‹å‡½æ•°
     static DWORD WINAPI StartRoutine(LPVOID param)
     {
         CThread* thread = (CThread*)param;
@@ -60,29 +60,29 @@ private:
     }
 
 private:
-    HANDLE          m_hThread;      // Ïß³Ì¾ä±ú
-    bool            m_bStopped;     // Ïß³ÌÊÇ·ñÍ£Ö¹
-    DWORD           m_nId;          // Ïß³ÌID
+    HANDLE          m_hThread;      // çº¿ç¨‹å¥æŸ„
+    bool            m_bStopped;     // çº¿ç¨‹æ˜¯å¦åœæ­¢
+    DWORD           m_nId;          // çº¿ç¨‹ID
 };
 
-// ·â×°µÄ»¥³âÁ¿Àà
+// å°è£…çš„äº’æ–¥é‡ç±»
 class CMutex
 {
 public:
     CMutex()
     {
-        // ´´½¨»¥³âÁ¿Ëø
+        // åˆ›å»ºäº’æ–¥é‡é”
         m_hMutex = CreateMutex(NULL, FALSE, NULL);
     }
     ~CMutex()
     {
-        // ÊÍ·Å»¥³âÁ¿Ëø
+        // é‡Šæ”¾äº’æ–¥é‡é”
         if (m_hMutex)
             CloseHandle(m_hMutex);
     }
 
 public:
-    // ¼ÓËø£¬»ñÈ¡»¥³âÁ¿Ëø£¬Ëø¶¨×ÊÔ´
+    // åŠ é”ï¼Œè·å–äº’æ–¥é‡é”ï¼Œé”å®šèµ„æº
     bool Lock()
     {
         if (m_hMutex)
@@ -92,8 +92,8 @@ public:
         return false;
     }
 
-    // ÊÔÍ¼Ëø¶¨×ÊÔ´£¬ÅĞ¶Ïµ±Ç°µÄ»¥³âÁ¿ÊÇ·ñ±»Õ¼ÓÃ¡£
-    // ·µ»ØtrueËµÃ÷¸ÃËøÎª·ÇÕ¼ÓÃ×´Ì¬£¬¿É»ñµÃ¸ÃËø£»·µ»ØfalseËµÃ÷¸ÃËøÎªÕ¼ÓÃ×´Ì¬£¬ĞèµÈ´ı±»ÊÍ·Å
+    // è¯•å›¾é”å®šèµ„æºï¼Œåˆ¤æ–­å½“å‰çš„äº’æ–¥é‡æ˜¯å¦è¢«å ç”¨ã€‚
+    // è¿”å›trueè¯´æ˜è¯¥é”ä¸ºéå ç”¨çŠ¶æ€ï¼Œå¯è·å¾—è¯¥é”ï¼›è¿”å›falseè¯´æ˜è¯¥é”ä¸ºå ç”¨çŠ¶æ€ï¼Œéœ€ç­‰å¾…è¢«é‡Šæ”¾
     bool TryLock()
     {
         if (m_hMutex) {
@@ -101,18 +101,18 @@ public:
         }
         return false;
     }
-    // ½âËø£¬ÊÍ·Å»¥³âÁ¿Ëø
+    // è§£é”ï¼Œé‡Šæ”¾äº’æ–¥é‡é”
     void Unlock()
     {
         if (m_hMutex)
             ReleaseMutex(m_hMutex);
     }
 private:
-    HANDLE          m_hMutex;       // »¥³âÁ¿¾ä±ú
+    HANDLE          m_hMutex;       // äº’æ–¥é‡å¥æŸ„
 };
 
-// »¥³âÁ¿ËøµÄ³éÏó
-// Ö»ÒªÉùÃ÷¸Ã¶ÔÏó¼´Ëø¶¨×ÊÔ´£¬µ±ÍË³öÆä(¸Ã¶ÔÏó)×÷ÓÃÓòÊ±¼´ÊÍ·ÅËø
+// äº’æ–¥é‡é”çš„æŠ½è±¡
+// åªè¦å£°æ˜è¯¥å¯¹è±¡å³é”å®šèµ„æºï¼Œå½“é€€å‡ºå…¶(è¯¥å¯¹è±¡)ä½œç”¨åŸŸæ—¶å³é‡Šæ”¾é”
 class CLock
 {
 public:
@@ -129,15 +129,15 @@ public:
     }
 
 private:
-    // ½ûÓÃ¸³Öµ²Ù×÷·û
+    // ç¦ç”¨èµ‹å€¼æ“ä½œç¬¦
     CLock& operator = (CLock&)
     {
         return *this;
     }
 
 private:
-    CMutex& m_mutex;        // »¥³âÁ¿¾ä±úµÄÒıÓÃ
-    bool            m_bLocked;      // »¥³âÁ¿ÊÇ·ñ±»Ëø¶¨(Õ¼ÓÃ)
+    CMutex& m_mutex;        // äº’æ–¥é‡å¥æŸ„çš„å¼•ç”¨
+    bool            m_bLocked;      // äº’æ–¥é‡æ˜¯å¦è¢«é”å®š(å ç”¨)
 };
 
 #endif  // CTHREAD_H_

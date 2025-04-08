@@ -1,9 +1,14 @@
 ﻿cmake_minimum_required(VERSION 3.5)
 
-project(opencvDNN LANGUAGES CXX)
+project(HandwritingDemo LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
+if(CMAKE_C_COMPILER_ID STREQUAL "MSVC")
+  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} /source-charset:utf-8 /execution-charset:gbk")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /source-charset:utf-8 /execution-charset:gbk")
+endif()
 
 include_directories(${CMAKE_CURRENT_SOURCE_DIR})
 	
@@ -21,43 +26,16 @@ if (NOT APPLE AND USE_CUDA)
 else ()
     set(USE_CUDA OFF)
 endif ()
-add_executable(ANNHandwriting
-    ANNHandwriting.cpp
+add_executable(cvuiHandwritingPredication
+    cvuiHandwritingPredication.cpp
 )
-add_executable(ANNHandwritingPredict
-    ANNHandwritingPredict.cpp
+
+add_executable(cvuiHandwritingTrainDemo 
+    cvuiHandwritingTrainDemo.cpp
 )
-add_executable(ANN_MLP
-    ANN_MLP.cpp
+add_executable(ANNHandwritingTrain
+    ANNHandwritingTrain.cpp
 )
-add_executable(handwritingcnndoubao
-    handwritingcnndoubao.cpp
-)
-add_executable(cvuiHandwriting
-    cvuiHandwriting.cpp
-)
-add_executable(Convolution
-    Convolution.cpp
-)
-add_executable(cvImgturnaround
-    cvImgturnaround.cpp
-)
-add_executable(handwritingPen 
-    handwritingPen.cpp
-)
-add_executable(ANNHandwritingPredictManual 
-    ANNHandwritingPredictManual.cpp
-)
-add_executable(cvuiHandwritingTrain 
-    cvuiHandwritingTrain.cpp
-)
-target_link_libraries(ANNHandwriting PRIVATE  ${OpenCV_LIBS} )
-target_link_libraries(ANNHandwritingPredict PRIVATE  ${OpenCV_LIBS} )
-target_link_libraries(ANN_MLP PRIVATE  ${OpenCV_LIBS} )
-target_link_libraries(handwritingcnndoubao PRIVATE  ${OpenCV_LIBS} )
-target_link_libraries(cvuiHandwriting PRIVATE  ${OpenCV_LIBS} )
-target_link_libraries(Convolution PRIVATE  ${OpenCV_LIBS} )
-target_link_libraries(cvImgturnaround PRIVATE  ${OpenCV_LIBS} )
-target_link_libraries(handwritingPen PRIVATE  ${OpenCV_LIBS} )
-target_link_libraries(ANNHandwritingPredictManual PRIVATE  ${OpenCV_LIBS} )
-target_link_libraries(cvuiHandwritingTrain PRIVATE  ${OpenCV_LIBS} )
+target_link_libraries(cvuiHandwritingPredication PRIVATE  ${OpenCV_LIBS} )
+target_link_libraries(cvuiHandwritingTrainDemo PRIVATE  ${OpenCV_LIBS} )
+target_link_libraries(ANNHandwritingTrain PRIVATE  ${OpenCV_LIBS} )
